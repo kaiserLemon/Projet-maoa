@@ -34,14 +34,15 @@ def algo_glouton(df_ville,df_object,capacite):
     villes_dispo=list(df_ville.index)
     ville_actuelle=1
     villes_dispo.remove(ville_actuelle)
-    pi=[ville_actuelle]
+    pi=[]
     dict_ville_objet={} # une dictionnaire pour savoir qu'on a quels objets dans chaque ville
     dict_ville_objet_pris={} # une dictionnaire pour savoir qu'on a quels objets pris dans chaque ville
     dict_ville_objet_pris[ville_actuelle]=[]
     for index_ville in villes_dispo:
         dict_ville_objet[index_ville]=list(get_objects_of_ville(index_ville,df_object).index)
 
-    while(capacite>poids_tot):
+    deposed=True
+    while(capacite>poids_tot and deposed and villes_dispo!=[]):
         distance_table=calcul_distance_de_ville(ville_actuelle,df_ville)
         ville_cible_best=max(villes_dispo,key=lambda ville_cible : (eval1(ville_cible,df_object,distance_table[ville_cible],dict_ville_objet[ville_cible]),eval2(ville_cible,df_object)))
         dict_ville_objet_pris[ville_cible_best]=[]
@@ -60,12 +61,6 @@ def algo_glouton(df_ville,df_object,capacite):
                     dict_ville_objet_pris[ville_cible_best].append(obj)
                     poids_tot+=poids_obj
                     obj_pris[obj-1]=1
-        
-        if not deposed:
-            break
-        
-        if villes_dispo==[]:
-            break
 
     while(villes_dispo != []):
         distance_table=calcul_distance_de_ville(ville_actuelle,df_ville)
@@ -75,6 +70,7 @@ def algo_glouton(df_ville,df_object,capacite):
         ville_actuelle=ville_cible_best
         villes_dispo.remove(ville_cible_best)
 
+    pi.append(1)
     pi.reverse()
     return pi,obj_pris,poids_tot,dict_ville_objet_pris
         
