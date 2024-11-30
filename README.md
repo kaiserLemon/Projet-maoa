@@ -2,9 +2,9 @@
 
 Ce projet se concentre sur les problèmes de TTP et KCTSP.
 
-TTP   = Travelling Thief Problem 
-TSP   = Travelling Salesman Problem 
-KP    = Knapsack Problem 
+TTP   = Travelling Thief Problem                                                                                                                                                                                
+TSP   = Travelling Salesman Problem                                                                                                                                                                             
+KP    = Knapsack Problem                                                                                                                                                                                        
 KCTSP = Time and weight dependent TSP + contrainte de KP 
 
 Nous réaliserons donc les points suivants:
