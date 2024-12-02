@@ -32,6 +32,7 @@ def algo_glouton(df_ville, df_object, capacite):
     nb_objet = len(df_object.index)
     obj_pris = [0] * nb_objet  # Object index is 1 if the object is taken, otherwise 0
     nb_ville = len(df_ville.index)
+    critere_limite=capacite/nb_ville
     villes_dispo = list(df_ville.index)
     ville_actuelle = 1
     villes_dispo.remove(ville_actuelle)
@@ -58,9 +59,11 @@ def algo_glouton(df_ville, df_object, capacite):
             )
             dict_ville_objet_pris[ville_cible_best] = []
             list_obj_possible_a_choisir = dict_ville_objet[ville_cible_best]
+            # Precompute eval values and store them
+            eval_cache = {obj: eval_obj(obj, df_object) for obj in list_obj_possible_a_choisir}
             list_obj_sorted = sorted(
                 list_obj_possible_a_choisir, 
-                key=lambda obj_index: eval_obj(obj_index, df_object)
+                key=lambda obj_index: eval_cache[obj_index]
             )
             pi.append(ville_cible_best)
             ville_actuelle = ville_cible_best
@@ -72,7 +75,7 @@ def algo_glouton(df_ville, df_object, capacite):
                 poids_obj = df_object.iloc[obj - 1]['Weight']
                 if poids_obj <= capacite - poids_tot:
                     deposed = True
-                    if eval_obj(obj_best, df_object) * 1.6 >= eval_obj(obj, df_object):
+                    if eval_cache[obj_best] * critere_limite >= eval_cache[obj]:
                         dict_ville_objet_pris[ville_cible_best].append(obj)
                         poids_tot += poids_obj
                         obj_pris[obj - 1] = 1
