@@ -30,9 +30,10 @@ def eval_obj(obj_index,df_object):
 def algo_glouton(df_ville, df_object, capacite):
     poids_tot = 0
     nb_objet = len(df_object.index)
+    nb_objet_restant=nb_objet
     obj_pris = [0] * nb_objet  # Object index is 1 if the object is taken, otherwise 0
     nb_ville = len(df_ville.index)
-    critere_limite=capacite/nb_ville
+    critere_limite=capacite/(nb_objet*100)
     villes_dispo = list(df_ville.index)
     ville_actuelle = 1
     villes_dispo.remove(ville_actuelle)
@@ -75,7 +76,7 @@ def algo_glouton(df_ville, df_object, capacite):
                 poids_obj = df_object.iloc[obj - 1]['Weight']
                 if poids_obj <= capacite - poids_tot:
                     deposed = True
-                    if eval_cache[obj_best] * critere_limite >= eval_cache[obj]:
+                    if critere_limite >= eval_cache[obj]:
                         dict_ville_objet_pris[ville_cible_best].append(obj)
                         poids_tot += poids_obj
                         obj_pris[obj - 1] = 1
@@ -83,6 +84,9 @@ def algo_glouton(df_ville, df_object, capacite):
                         # Update tqdm progress bar
                         pbar.update(poids_obj)
                         pbar.set_postfix({"Current Weight": poids_tot,"Nb_ville":len(pi)})
+                critere_limite=(capacite-poids_tot)/(nb_objet_restant*100)
+            
+            nb_objet_restant=nb_objet_restant-len(list_obj_sorted)
 
     while villes_dispo != []:
         distance_table = calcul_distance_de_ville(ville_actuelle, df_ville)
