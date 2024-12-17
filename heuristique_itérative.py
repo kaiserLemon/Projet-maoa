@@ -2,9 +2,10 @@ import numpy as np
 import copy
 from utils import *
 from heuristique_glouton import *
+from evaluation import *
 
 
-def algo_iteratif(df_ville, df_object, capacite, max_iterations=500):
+def algo_iteratif(df_ville, df_object, capacite, max_iterations=50):
     nb_villes = len(df_ville)
     pi = np.random.permutation(nb_villes) + 1 
     obj_pris = np.random.randint(2, size=len(df_object))
@@ -14,15 +15,15 @@ def algo_iteratif(df_ville, df_object, capacite, max_iterations=500):
     best_pi = pi
     best_obj_pris = obj_pris
     best_dict_ville_objet_pris = copy.deepcopy(dict_ville_objet_pris)
-    best_profit = calculer_profit(best_pi, best_obj_pris, df_ville, df_object, capacite)
-
+    #best_profit = calculer_profit(best_pi, best_obj_pris, df_ville, df_object, capacite)
+    best_profit = -100000000000000000
     # Étape 3 : Itérations pour améliorer la solution
     for iteration in range(max_iterations):
         #Amélioration du chemin avec une approche 2-opt
-        new_pi = amelioration_chemin_2opt(best_pi, df_ville)
+        new_pi = amelioration_chemin(best_pi, df_ville)
         #Amélioration du choix des objets
         new_obj_pris, new_poids_tot, new_dict_ville_objet_pris = amelioration_objets(
-            pi, df_object, capacite
+            new_pi, df_object, capacite
         )
 
         # Calculer le profit de la nouvelle solution
@@ -40,7 +41,7 @@ def algo_iteratif(df_ville, df_object, capacite, max_iterations=500):
 
 # **Fonction 1 : Amélioration du chemin avec 2-opt**
 
-def amelioration_chemin_2opt(pi, df_ville):
+def amelioration_chemin(pi, df_ville):
     """
     Optimise la tournée pi en utilisant l'algorithme 2-opt avec vectorisation.
     """
@@ -89,7 +90,7 @@ def amelioration_chemin_2opt(pi, df_ville):
 def amelioration_objets(pi, df_object, capacite):
     new_obj_pris = [0] * len(df_object.index)
     new_poids_tot = 0
-    new_dict_ville_objet_pris = {}
+    new_dict_ville_objet_pris = {ville: [] for ville in pi}
 
     for ville in pi:
         objets_disponibles = get_objects_of_ville(ville, df_object).index
@@ -103,9 +104,10 @@ def amelioration_objets(pi, df_object, capacite):
                 new_obj_pris[obj - 1] = 1
                 new_poids_tot += poids_obj
                 objets_pris.append(obj)
+                new_dict_ville_objet_pris[ville].append(obj)
 
         # Mise à jour des objets pris pour cette ville
-        new_dict_ville_objet_pris[ville] = objets_pris
+        #new_dict_ville_objet_pris[ville] = objets_pris
 
     return new_obj_pris, new_poids_tot, new_dict_ville_objet_pris
 
@@ -137,3 +139,9 @@ def calcul_distance_totale(pi, df_ville):
 df_ville,df_object,capacity=parse_ttp_file("a280_n279_bounded-strongly-corr_01.ttp")
 
 pi, best_obj_pris, new_poids_tot, dict_ville_objet_pris = algo_iteratif(df_ville,df_object,capacity)
+#pi, best_obj_pris, new_poids_tot, dict_ville_objet_pris = algo_glouton(df_ville,df_object,capacity)
+#print(pi[0])
+#print("///////////////////////////////")
+#print(dict_ville_objet_pris)
+
+print(eval_non_lin(pi,df_ville,df_object,dict_ville_objet_pris,best_obj_pris,capacity))
