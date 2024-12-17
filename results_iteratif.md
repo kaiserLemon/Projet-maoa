@@ -1,0 +1,35 @@
+
+Non-linéaire :                      
+
+100 itérations :
+BENEFICE :  180357
+COUT :  33784.19377461289
+146572.80622538712
+
+500 itérations :
+BENEFICE :  161846
+COUT :  34732.00229280324
+127113.99770719676
+
+1000 itérations :
+BENEFICE :  150737
+COUT :  34002.542994979805
+116734.4570050202
+
+
+Linéaire 
+
+100 itérations :
+BENEFICE :  180357  
+COUT :  0.0
+180357.0
+
+500 itérations :
+BENEFICE :  161846
+COUT :  0.0
+161846.0
+
+1000 itérations :
+BENEFICE :  150737
+COUT :  0.0
+150737.0                                

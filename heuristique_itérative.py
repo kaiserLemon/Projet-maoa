@@ -4,9 +4,11 @@ from utils import *
 from heuristique_glouton import *
 
 
-def algo_iteratif(df_ville, df_object, capacite, max_iterations=1):
-    # Étape 1 : Générer une solution initiale avec l'algorithme glouton
-    pi, obj_pris, poids_tot, dict_ville_objet_pris = algo_glouton(df_ville, df_object, capacite)
+def algo_iteratif(df_ville, df_object, capacite, max_iterations=500):
+    nb_villes = len(df_ville)
+    pi = np.random.permutation(nb_villes) + 1 
+    obj_pris = np.random.randint(2, size=len(df_object))
+    dict_ville_objet_pris = {ville: [] for ville in pi}
 
     #Étape 2 : Initialiser les variables
     best_pi = pi
@@ -32,11 +34,8 @@ def algo_iteratif(df_ville, df_object, capacite, max_iterations=1):
             best_obj_pris = new_obj_pris
             best_dict_ville_objet_pris = new_dict_ville_objet_pris
             best_profit = new_profit
-        else:
-            # Arrêt si aucune amélioration significative
-            break
 
-    return pi, dict_ville_objet_pris
+    return best_pi, best_obj_pris, new_poids_tot, best_dict_ville_objet_pris
 
 
 # **Fonction 1 : Amélioration du chemin avec 2-opt**
@@ -63,30 +62,24 @@ def amelioration_chemin_2opt(pi, df_ville):
 
         # Calcul vectorisé des gains pour toutes les paires (i, j)
         for i in range(1, n - 2):  # Éviter la ville de départ/fin
-            # Précalcul pour éviter les opérations inutiles
             d_pi_prev = matrice_distances[pi[i - 1], :]  # Distance de la ville avant i à toutes les autres
             d_pi_next = matrice_distances[:, pi[(i + 1) % n]]  # Distance de toutes les autres à la ville après i
-
             for j in range(i + 1, n):  # Vérifier toutes les paires possibles
                 if j - i == 1:  # Pas d'inversion entre des villes adjacentes
                     continue
                 
-                # Distances avant et après l'inversion
                 d_before = matrice_distances[pi[i - 1], pi[i]] + matrice_distances[pi[j], pi[(j + 1) % n]]
                 d_after = d_pi_prev[pi[j]] + d_pi_next[pi[i]]
 
-                # Gain
                 gain = d_after - d_before
-
-                # Appliquer l'amélioration si le gain est positif
+                
                 if gain < 0:
                     pi[i:j + 1] = pi[i:j + 1][::-1]  # Effectuer l'inversion
                     improved = True
                     break  # Sortir de la boucle j après une amélioration
-            if improved:
-                break  # Reprendre depuis le début après une amélioration
-
-    # Re-conversion de la tournée en index basé sur 1
+                else:
+                    improved = False
+            
     return (pi + 1).tolist()
 
 
@@ -143,4 +136,4 @@ def calcul_distance_totale(pi, df_ville):
 
 df_ville,df_object,capacity=parse_ttp_file("a280_n279_bounded-strongly-corr_01.ttp")
 
-pi2,dict_ville_objet_pris2 = algo_iteratif(df_ville,df_object,capacity)
+pi, best_obj_pris, new_poids_tot, dict_ville_objet_pris = algo_iteratif(df_ville,df_object,capacity)
