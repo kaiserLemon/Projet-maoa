@@ -4,112 +4,77 @@ from utils import *
 from heuristique_glouton import *
 from evaluation import *
 
+def algo_genetique(df_ville, df_object, capacite, population_size, max_iterations, mutation_rate=0.1):
+    def generate_solution():
+        pi = np.random.permutation(len(df_ville)) + 1
+        obj_pris = np.random.randint(2, size=len(df_object))
+        return pi, obj_pris
 
-def algo_iteratif(df_ville, df_object, capacite, max_iterations=50):
-    nb_villes = len(df_ville)
-    pi = np.random.permutation(nb_villes) + 1 
-    obj_pris = np.random.randint(2, size=len(df_object))
-    dict_ville_objet_pris = {ville: [] for ville in pi}
+    def evaluate_solution(pi, obj_pris):
+        dict_ville_objet_pris = {ville: [] for ville in pi}
+        for i, ville in enumerate(pi):
+            objets_disponibles = get_objects_of_ville(ville, df_object).index
+            for obj in objets_disponibles:
+                if obj_pris[obj-1] == 1:
+                    dict_ville_objet_pris[ville].append(obj)
+        return calculer_profit(pi, obj_pris, df_ville, df_object, capacite), dict_ville_objet_pris
 
-    #Étape 2 : Initialiser les variables
-    best_pi = pi
-    best_obj_pris = obj_pris
-    best_dict_ville_objet_pris = copy.deepcopy(dict_ville_objet_pris)
-    #best_profit = calculer_profit(best_pi, best_obj_pris, df_ville, df_object, capacite)
-    best_profit = -100000000000000000
-    # Étape 3 : Itérations pour améliorer la solution
+    def crossover(parent1, parent2):
+        cut = np.random.randint(1, len(parent1[0]))
+        child1_pi = np.concatenate((parent1[0][:cut], parent2[0][cut:]))
+        child2_pi = np.concatenate((parent2[0][:cut], parent1[0][cut:]))
+        child1_obj_pris = np.concatenate((parent1[1][:cut], parent2[1][cut:]))
+        child2_obj_pris = np.concatenate((parent2[1][:cut], parent1[1][cut:]))
+        return (child1_pi, child1_obj_pris), (child2_pi, child2_obj_pris)
+
+    def mutate(solution):
+        pi, obj_pris = solution
+        if np.random.rand() < mutation_rate:
+            i, j = np.random.randint(0, len(pi), size=2)
+            pi[i], pi[j] = pi[j], pi[i]
+        if np.random.rand() < mutation_rate:
+            i = np.random.randint(0, len(obj_pris))
+            obj_pris[i] = 1 - obj_pris[i]
+        return pi, obj_pris
+
+    # Générer la population initiale
+    population = [generate_solution() for _ in range(population_size)]
+    best_solution = None
+    best_profit = -np.inf
+
     for iteration in range(max_iterations):
-        #Amélioration du chemin avec une approche 2-opt
-        new_pi = amelioration_chemin(best_pi, df_ville)
-        #Amélioration du choix des objets
-        new_obj_pris, new_poids_tot, new_dict_ville_objet_pris = amelioration_objets(
-            new_pi, df_object, capacite
-        )
+        # Évaluer la population
+        evaluated_population = [(evaluate_solution(pi, obj_pris), (pi, obj_pris)) for pi, obj_pris in population]
+        evaluated_population.sort(reverse=True, key=lambda x: x[0][0])
 
-        # Calculer le profit de la nouvelle solution
-        new_profit = calculer_profit(new_pi, new_obj_pris, df_ville, df_object, capacite)
+        # Sélectionner les meilleures solutions
+        population = [solution for _, solution in evaluated_population[:population_size // 2]]
 
-        # Si la solution est meilleure, mettez à jour
-        if new_profit > best_profit:
-            best_pi = new_pi
-            best_obj_pris = new_obj_pris
-            best_dict_ville_objet_pris = new_dict_ville_objet_pris
-            best_profit = new_profit
+        # Mettre à jour la meilleure solution
+        if evaluated_population[0][0][0] > best_profit:
+            best_profit = evaluated_population[0][0][0]
+            best_solution = evaluated_population[0][1]
 
-    return best_pi, best_obj_pris, new_poids_tot, best_dict_ville_objet_pris
+        # Générer la population enfant par croisement et mutation
+        children = []
+        while len(children) < population_size:
+            parent_indices = np.random.choice(len(population), size=2, replace=False)
+            # Select parents using the indices
+            parents = [population[i] for i in parent_indices]
+            child1, child2 = crossover(parents[0], parents[1])
+            children.append(mutate(child1))
+            if len(children) < population_size:
+                children.append(mutate(child2))
 
+        population = children
 
-# **Fonction 1 : Amélioration du chemin avec 2-opt**
+        # Vérifier la convergence
+        if iteration > 0 and abs(evaluated_population[0][0][0] - best_profit) < 1e-6:
+            break
 
-def amelioration_chemin(pi, df_ville):
-    """
-    Optimise la tournée pi en utilisant l'algorithme 2-opt avec vectorisation.
-    """
-    # Pré-calcul de la matrice des distances
-    nb_villes = len(df_ville)
-    matrice_distances = np.zeros((nb_villes, nb_villes))
-    for i in range(nb_villes):
-        distances_de_i = calcul_distance_de_ville(i + 1, df_ville)
-        for j in range(nb_villes):
-            matrice_distances[i, j] = distances_de_i[j + 1]
-
-    # Conversion de la tournée en index basé sur 0 (Python)
-    pi = np.array([ville - 1 for ville in pi])  # Les villes sont indexées de 1 dans le problème
-    n = len(pi)
-    improved = True
-
-    while improved:
-        improved = False
-
-        # Calcul vectorisé des gains pour toutes les paires (i, j)
-        for i in range(1, n - 2):  # Éviter la ville de départ/fin
-            d_pi_prev = matrice_distances[pi[i - 1], :]  # Distance de la ville avant i à toutes les autres
-            d_pi_next = matrice_distances[:, pi[(i + 1) % n]]  # Distance de toutes les autres à la ville après i
-            for j in range(i + 1, n):  # Vérifier toutes les paires possibles
-                if j - i == 1:  # Pas d'inversion entre des villes adjacentes
-                    continue
-                
-                d_before = matrice_distances[pi[i - 1], pi[i]] + matrice_distances[pi[j], pi[(j + 1) % n]]
-                d_after = d_pi_prev[pi[j]] + d_pi_next[pi[i]]
-
-                gain = d_after - d_before
-                
-                if gain < 0:
-                    pi[i:j + 1] = pi[i:j + 1][::-1]  # Effectuer l'inversion
-                    improved = True
-                    break  # Sortir de la boucle j après une amélioration
-                else:
-                    improved = False
-            
-    return (pi + 1).tolist()
-
-
-
-
-# **Fonction 2 : Amélioration des objets avec mise à jour de dict_ville_objet_pris**
-def amelioration_objets(pi, df_object, capacite):
-    new_obj_pris = [0] * len(df_object.index)
-    new_poids_tot = 0
-    new_dict_ville_objet_pris = {ville: [] for ville in pi}
-
-    for ville in pi:
-        objets_disponibles = get_objects_of_ville(ville, df_object).index
-        objets_tries = sorted(objets_disponibles, key=lambda obj: eval_obj(obj, df_object), reverse=True)
-
-        objets_pris = []  # Liste des objets pris dans cette ville
-
-        for obj in objets_tries:
-            poids_obj = df_object.iloc[obj - 1]['Weight']
-            if new_poids_tot + poids_obj <= capacite:
-                new_obj_pris[obj - 1] = 1
-                new_poids_tot += poids_obj
-                objets_pris.append(obj)
-                new_dict_ville_objet_pris[ville].append(obj)
-
-        # Mise à jour des objets pris pour cette ville
-        #new_dict_ville_objet_pris[ville] = objets_pris
-
-    return new_obj_pris, new_poids_tot, new_dict_ville_objet_pris
+    best_pi, best_obj_pris = best_solution
+    best_profit, best_dict_ville_objet_pris = evaluate_solution(best_pi, best_obj_pris)
+    return best_pi, best_obj_pris, best_profit, best_dict_ville_objet_pris
 
 
 # **Fonction 3 : Calcul du profit**
@@ -135,13 +100,30 @@ def calcul_distance_totale(pi, df_ville):
     return distance_totale
 
 
+# Exemple d'utilisation
+df_ville, df_object, capacity = parse_ttp_file("a280_n279_bounded-strongly-corr_01.ttp")
+#pi, best_obj_pris, best_profit, dict_ville_objet_pris = algo_genetique(df_ville, df_object, capacity)
+#print(eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris))
 
-df_ville,df_object,capacity=parse_ttp_file("a280_n279_bounded-strongly-corr_01.ttp")
+max_iterations_list = [50, 150, 250, 350, 400, 500]
+max_population_size = [50, 100, 150, 200, 250]
 
-pi, best_obj_pris, new_poids_tot, dict_ville_objet_pris = algo_iteratif(df_ville,df_object,capacity)
-#pi, best_obj_pris, new_poids_tot, dict_ville_objet_pris = algo_glouton(df_ville,df_object,capacity)
-#print(pi[0])
-#print("///////////////////////////////")
-#print(dict_ville_objet_pris)
-
-print(eval_non_lin(pi,df_ville,df_object,dict_ville_objet_pris,best_obj_pris,capacity))
+with open("results_iteratif.md", "w") as file:
+    file.write("# Résultats de l'algorithme génétique\n\n")
+    for max_iterations in max_iterations_list:
+        print(f"Running algo_genetique with max_iterations = {max_iterations}")
+        for max_population in max_population_size:
+            print(f"Running algo_genetique with max_iterationn = {max_iterations}")
+            print(f"Running algo_genetique with max_population = {max_population}")
+            pi, best_obj_pris, best_profit, dict_ville_objet_pris = algo_genetique(df_ville, df_object, capacity, population_size=max_population, max_iterations=max_iterations)
+            eval_lin_result, benefice_lin, cout_lin = eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris)
+            eval_non_lin_result, benefice_non_lin, cout_non_lin = eval_non_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris, capacity)
+            file.write(f"## max_iterations = {max_iterations}\n")
+            file.write(f"### max_population = {max_population}\n")
+            file.write(f"- eval_lin_benefice = {benefice_lin}\n")
+            file.write(f"- eval_lin_cout = {cout_lin}\n")
+            file.write(f"- eval_lin_result = {eval_lin_result}\n")
+            file.write(f"- eval_non_lin_benefice = {benefice_non_lin}\n")
+            file.write(f"- eval_non_lin_cout = {cout_non_lin}\n")
+            file.write(f"- eval_non_lin_result = {eval_non_lin_result}\n\n")
+    print(f"max_iterations = {max_iterations}, eval_lin = {eval_lin_result}, eval_non_lin = {eval_non_lin_result}")
