@@ -99,31 +99,31 @@ def calcul_distance_totale(pi, df_ville):
     distance_totale += calcul_distance_de_ville(pi[-1], df_ville)[pi[0]]  # Retour à la ville de départ
     return distance_totale
 
+if __name__=="__main__":
+    # Exemple d'utilisation
+    df_ville, df_object, capacity = parse_ttp_file("a280_n279_bounded-strongly-corr_01.ttp")
+    #pi, best_obj_pris, best_profit, dict_ville_objet_pris = algo_genetique(df_ville, df_object, capacity)
+    #print(eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris))
 
-# Exemple d'utilisation
-df_ville, df_object, capacity = parse_ttp_file("a280_n279_bounded-strongly-corr_01.ttp")
-#pi, best_obj_pris, best_profit, dict_ville_objet_pris = algo_genetique(df_ville, df_object, capacity)
-#print(eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris))
+    max_iterations_list = [50, 150, 250, 350, 400, 500]
+    max_population_size = [50, 100, 150, 200, 250]
 
-max_iterations_list = [50, 150, 250, 350, 400, 500]
-max_population_size = [50, 100, 150, 200, 250]
-
-with open("results_iteratif.md", "w") as file:
-    file.write("# Résultats de l'algorithme génétique\n\n")
-    for max_iterations in max_iterations_list:
-        print(f"Running algo_genetique with max_iterations = {max_iterations}")
-        for max_population in max_population_size:
-            print(f"Running algo_genetique with max_iterationn = {max_iterations}")
-            print(f"Running algo_genetique with max_population = {max_population}")
-            pi, best_obj_pris, best_profit, dict_ville_objet_pris = algo_genetique(df_ville, df_object, capacity, population_size=max_population, max_iterations=max_iterations)
-            eval_lin_result, benefice_lin, cout_lin = eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris)
-            eval_non_lin_result, benefice_non_lin, cout_non_lin = eval_non_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris, capacity)
-            file.write(f"## max_iterations = {max_iterations}\n")
-            file.write(f"### max_population = {max_population}\n")
-            file.write(f"- eval_lin_benefice = {benefice_lin}\n")
-            file.write(f"- eval_lin_cout = {cout_lin}\n")
-            file.write(f"- eval_lin_result = {eval_lin_result}\n")
-            file.write(f"- eval_non_lin_benefice = {benefice_non_lin}\n")
-            file.write(f"- eval_non_lin_cout = {cout_non_lin}\n")
-            file.write(f"- eval_non_lin_result = {eval_non_lin_result}\n\n")
-    print(f"max_iterations = {max_iterations}, eval_lin = {eval_lin_result}, eval_non_lin = {eval_non_lin_result}")
+    with open("results_iteratif.md", "w") as file:
+        file.write("# Résultats de l'algorithme génétique\n\n")
+        for max_iterations in max_iterations_list:
+            print(f"Running algo_genetique with max_iterations = {max_iterations}")
+            for max_population in max_population_size:
+                print(f"Running algo_genetique with max_iterationn = {max_iterations}")
+                print(f"Running algo_genetique with max_population = {max_population}")
+                pi, best_obj_pris, best_profit, dict_ville_objet_pris = algo_genetique(df_ville, df_object, capacity, population_size=max_population, max_iterations=max_iterations)
+                eval_lin_result, benefice_lin, cout_lin = eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris)
+                eval_non_lin_result, benefice_non_lin, cout_non_lin = eval_non_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris, capacity)
+                file.write(f"## max_iterations = {max_iterations}\n")
+                file.write(f"### max_population = {max_population}\n")
+                file.write(f"- eval_lin_benefice = {benefice_lin}\n")
+                file.write(f"- eval_lin_cout = {cout_lin}\n")
+                file.write(f"- eval_lin_result = {eval_lin_result}\n")
+                file.write(f"- eval_non_lin_benefice = {benefice_non_lin}\n")
+                file.write(f"- eval_non_lin_cout = {cout_non_lin}\n")
+                file.write(f"- eval_non_lin_result = {eval_non_lin_result}\n\n")
+        print(f"max_iterations = {max_iterations}, eval_lin = {eval_lin_result}, eval_non_lin = {eval_non_lin_result}")
