@@ -3,7 +3,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from heuristique_glouton import *
 
-df_ville,df_object,capacity=parse_ttp_file("a280_n279_bounded-strongly-corr_01.ttp")
+df_ville,df_object,capacity=parse_ttp_file("a280_n2790_uncorr_10.ttp")
 pi,obj_pris,poids_tot,dict_ville_objet_pris=algo_glouton(df_ville,df_object,capacity)
 
 
@@ -12,17 +12,24 @@ fig = go.Figure()
 
 # Ajout des villes
 for idx, row in df_ville.iterrows():
+    objets_pris=dict_ville_objet_pris[idx]
+    hovertemplate = f"Nom de la ville : {idx}"
+    for obj in objets_pris:
+        hovertemplate += f"<br>Nom de l'objet : {obj}"
+    
+    hovertemplate+="<extra></extra>"
+
     fig.add_trace(go.Scatter(
         x=[row["X"]],
         y=[row["Y"]],
         mode="markers+text",
         text=f"V {idx}",
         name=f"Ville {idx}",
-        textposition="top center",
+        #textposition="top center",
         marker=dict(size=10),
         hoverinfo="text",
-        customdata=[dict_ville_objet_pris[idx]],  # Associe les objets à chaque ville
-        hovertemplate="<b>Ville %{text}</b><br>Objets : %{customdata[0]}<extra></extra>"
+        customdata=[dict_ville_objet_pris[idx]],  # Ajout du texte et des objets
+        hovertemplate=hovertemplate
     ))
 
 # Ajout des lignes représentant l'ordre de passage
