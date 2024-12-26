@@ -20,7 +20,7 @@ def eval_non_lin(pi,df_ville,df_object,dict_ville_objet_pris,obj_pris,capacity):
         #print(pi[i])
         #print(len(list_objet_i_pris))
         for index in list_objet_i_pris:
-            print("yes")
+            #print("yes")
             poids=poids+df_object.iloc[index-1]["Weight"]
 
     distance=calcul_distance_de_ville(pi[-1],df_ville)[1]
@@ -43,7 +43,7 @@ def eval_lin(pi,df_ville,df_object,dict_ville_objet_pris,obj_pris):
         cout=cout+distance*poids
         list_objet_i_pris=dict_ville_objet_pris[pi[i]]
         for index in list_objet_i_pris:
-            print("yes")
+            #print("yes")
             poids=poids+df_object.iloc[index-1]["Weight"]
 
     distance=calcul_distance_de_ville(pi[-1],df_ville)[1]

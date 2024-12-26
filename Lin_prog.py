@@ -1,80 +1,114 @@
-import pulp
+import gurobipy as gp
+from heuristique_glouton import get_objects_of_ville
 from utils import *
-from heuristique_glouton import get_objects_of_ville 
 
-def solve_prog_lin(df_ville,df_object):
+def prog_lin(df_ville,df_object,capacity):
 
-    # Create a linear programming problem
-    model = pulp.LpProblem("Routing_Profit_Maximization", pulp.LpMaximize)
+    # Initialize combined model
+    model = gp.Model("CombinedModel")
 
-    list_index_ville=list(df_ville.index)
-    dict_obj_ville={}
-    list_obj=[]
+    # Decision variables for object selection
+    dict_obj_ville = {}
+    list_index_ville = list(df_ville.index)
+    list_obj = []
+
     for index_ville in list_index_ville:
-        dict_obj_ville[index_ville]=[]
-
-    # Define variables for city and object selections
-    pi = [[pulp.LpVariable(f"pi_{i}_{j}", cat="Binary") for j in range(len(list_index_ville))] for i in range(len(list_index_ville))]
-
-    x = []  # Object variables list
-    dict_obj_ville = {}  # Objects for each city
-    for index_ville in list_index_ville:
-        dict_obj_ville[index_ville] = []
         list_index_obj = list(get_objects_of_ville(index_ville + 1, df_object).index)
+        dict_obj_ville[index_ville] = []
         for index_obj in list_index_obj:
-            var = pulp.LpVariable(f"x_{index_obj}", cat="Binary")
-            dict_obj_ville[index_ville].append(var)
-            x.append(var)
+            x = model.addVar(vtype=gp.GRB.BINARY, name=f"x_{index_ville}_{index_obj}")
+            dict_obj_ville[index_ville].append(x)
+            list_obj.append(x)
 
-    # Add constraints: visiting cities
-    model += pi[0][0] == 1  # Start at city 0
-    for i in range(len(list_index_ville)):
-        model += pulp.lpSum(pi[i]) == 1  # Visit one city per step
-        model += pulp.lpSum([pi[j][i] for j in range(len(list_index_ville))]) == 1  # Each city is visited once
 
-    # Linearization: Create z variables
-    z = [[[pulp.LpVariable(f"z_{i}_{j}_{k}", cat="Binary") 
-      for k in range(len(list_index_ville))] for j in range(len(list_index_ville))] 
-      for i in range(len(list_index_ville) - 1)]
+    # Decision variables for routing
+    n = len(list_index_ville)
+    y = [
+        [model.addVar(vtype=gp.GRB.BINARY, name=f"y_{i}_{j}") for j in range(n)]
+        for i in range(n)
+    ]
 
-    # Add linearization constraints for z
-    for i in range(len(list_index_ville) - 1):
-        for j in range(len(list_index_ville)):
-            for k in range(len(list_index_ville)):
-                model += z[i][j][k] <= pi[i][j]
-                model += z[i][j][k] <= pi[i + 1][k]
-                model += z[i][j][k] >= pi[i][j] + pi[i + 1][k] - 1
+# Auxiliary variables for cumulative weight
+    w = model.addVars(n, vtype=gp.GRB.CONTINUOUS, lb=0, name="w")
 
-    # Add weight constraint for objects
-    list_poids = [df_object.iloc[i]["Weight"] for i in range(len(x))]
-    capacity = 50  # Example capacity
-    model += pulp.lpSum(list_poids[i] * x[i] for i in range(len(x))) <= capacity
+    w_transfers=model.addVars(n, vtype=gp.GRB.CONTINUOUS, lb=0, name="w_transfer")
 
-    # Define benefits
-    list_benefits = [df_object.iloc[i]["Profit"] for i in range(len(x))]
-    total_benefit = pulp.lpSum(list_benefits[i] * x[i] for i in range(len(x)))
+    model.addConstr(w_transfers[0]==0)
 
-    # Define the total distance
-    distance_matrix = {ville: calcul_distance_de_ville(ville, df_ville) for ville in df_ville.index}
-    total_distance = pulp.lpSum(
-        distance_matrix[j][k] * z[i][j][k]
-        for i in range(len(list_index_ville) - 1)
-        for j in range(len(list_index_ville))
-        for k in range(len(list_index_ville))
+    # Auxiliary variables for MTZ constraints
+    u = model.addVars(n, vtype=gp.GRB.CONTINUOUS, lb=1, ub=n, name="u")
+
+    # Define weights and profits for object selection
+    list_poids = [df_object.iloc[i]["Weight"] for i in range(len(list_obj))]
+    list_benefits = [df_object.iloc[i]["Profit"] for i in range(len(list_obj))]
+
+    # Define distance matrix
+    matrix_distance = {i: calcul_distance_de_ville(i, df_ville) for i in list_index_ville}
+
+    # Add capacity constraint
+    model.addConstr(
+        gp.quicksum(list_poids[i] * list_obj[i] for i in range(len(list_poids))) <= capacity,
+        "Capacity"
     )
 
-    # Set the objective: maximize profit minus distance
-    model += total_benefit - total_distance
+    # Add routing constraints
+    model.addConstrs(
+        (gp.quicksum(y[i][j] for j in range(n) if j != i) == 1 for i in range(n)), "Depart"
+    )
+    model.addConstrs(
+        (gp.quicksum(y[i][j] for i in range(n) if i != j) == 1 for j in range(n)), "Arrive"
+    )
 
-    # Solve using GLPK solver
-    model.solve(pulp.GLPK(msg=True))
+    # Ensure objects are selected only if their cities are visited
+    for index_ville, vars_list in dict_obj_ville.items():
+        for obj_var in vars_list:
+            model.addConstr(
+                gp.quicksum(y[index_ville][j] for j in range(n) if j != index_ville) >= obj_var,
+                f"ObjectSelectedIfCityVisited_{index_ville}"
+            )
 
-    # Display results
-    if pulp.LpStatus[model.status] == "Optimal":
-        print(f"Total Objective Value: {pulp.value(model.objective)}")
-        for i in range(len(list_index_ville)):
-            for j in range(len(list_index_ville)):
-                if pulp.value(pi[i][j]) == 1:
-                    print(f"At time {i}, visit city {j}")
-    else:
-        print("No optimal solution found.")
+    # Add cumulative weight constraints
+    for i in range(n):
+        model.addConstr(
+            w[i] == gp.quicksum(dict_obj_ville[i+1][k] * list_poids[k] for k in range(len(dict_obj_ville[i+1]))),
+            f"CumulativeWeight_{i}"
+        )
+        if i > 0:
+            model.addConstr(w_transfers[i] == w[i] + w_transfers[i-1],f"WeightTransfer_{i}")
+
+    # Add MTZ constraints to eliminate subtours
+    for i in range(1, n):  # Start from 1 since city 0 is the starting point
+        for j in range(1, n):  # MTZ does not apply for starting city
+            if i != j:
+                model.addConstr(
+                    u[i] - u[j] + n * y[i][j] <= n - 1,
+                    name=f"SubtourElimination_{i}_{j}"
+                )
+
+    # Define objective function
+    profit = gp.quicksum(list_benefits[i] * list_obj[i] for i in range(len(list_benefits)))
+    routing_cost = gp.quicksum(
+        matrix_distance[i + 1][j + 1] * y[i][j] * w_transfers[i] for i in range(n) for j in range(n)    
+    )
+
+    # Combine objectives: maximize profit and minimize routing cost
+    alpha = 1  # Weight for profit
+    beta = 1   # Weight for routing cost (adjust based on importance)
+    model.setObjective(alpha * profit-beta*routing_cost, gp.GRB.MAXIMIZE)
+
+    # Optimize the model
+    model.optimize()
+
+    # Print results
+    if model.status == gp.GRB.OPTIMAL:
+        print(f"Optimal combined objective value: {model.objVal}")
+        print("Selected objects:")
+        for index_ville, vars_list in dict_obj_ville.items():
+            for obj_var in vars_list:
+                if obj_var.x > 0.5:
+                    print(f"Object {obj_var.varName} selected")
+        print("Optimal routing:")
+        for i in range(n):
+            for j in range(n):
+                if y[i][j].x > 0.5:
+                    print(f"Route: City {i} -> City {j}")
