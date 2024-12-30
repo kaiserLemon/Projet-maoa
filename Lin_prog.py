@@ -112,3 +112,8 @@ def prog_lin(df_ville,df_object,capacity):
             for j in range(n):
                 if y[i][j].x > 0.5:
                     print(f"Route: City {i} -> City {j}")
+
+
+if __name__=="__main__":
+    df_ville,df_object,capacity=parse_ttp_file("a280_n2790_uncorr_10.ttp")
+    prog_lin(df_ville,df_object,capacity)

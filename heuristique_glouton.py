@@ -1,5 +1,6 @@
 from utils import *
 import tqdm
+from evaluation import *
 
 def eval1(ville_cible,df_object,dist,list_objects):
     list_eval=[]
@@ -99,4 +100,28 @@ def algo_glouton(df_ville, df_object, capacite):
     pi.append(1)
     pi.reverse()
     return pi, obj_pris, poids_tot, dict_ville_objet_pris
+
+
+if __name__=="__main__":
+    fichiers=["a280_n279_bounded-strongly-corr_01.ttp",
+              "a280_n1395_uncorr-similar-weights_05.ttp",
+              "a280_n2790_uncorr_10.ttp",
+              "fnl4461_n22300_uncorr-similar-weights_05.ttp",
+              "fnl4461_n44600_uncorr_10.ttp"]
+    
+    with open("results_glouton.md", "w") as file:
+        file.write("# Résultats de l'algorithme glouton\n\n")
+        for nom_fic in fichiers:
+            df_ville, df_object, capacity = parse_ttp_file(nom_fic)
+            pi, best_obj_pris, best_profit, dict_ville_objet_pris = algo_glouton(df_ville, df_object, capacity)
+            eval_lin_result, benefice_lin, cout_lin = eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris)
+            eval_non_lin_result, benefice_non_lin, cout_non_lin = eval_non_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris, capacity)
+            file.write(f"Nom de fichier : {nom_fic}\n")
+            file.write(f"- eval_lin_benefice = {benefice_lin}\n")
+            file.write(f"- eval_lin_cout = {cout_lin}\n")
+            file.write(f"- eval_lin_result = {eval_lin_result}\n")
+            file.write(f"- eval_non_lin_benefice = {benefice_non_lin}\n")
+            file.write(f"- eval_non_lin_cout = {cout_non_lin}\n")
+            file.write(f"- eval_non_lin_result = {eval_non_lin_result}\n\n")
+
         
