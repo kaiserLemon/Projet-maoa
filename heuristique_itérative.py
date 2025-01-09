@@ -1,8 +1,10 @@
 import numpy as np
-import copy
 from utils import *
 from heuristique_glouton import *
 from evaluation import *
+
+seed_value = 42
+np.random.seed(seed_value)
 
 def algo_genetique(df_ville, df_object, capacite, population_size, max_iterations, mutation_rate=0.1):
     def generate_solution():
@@ -106,7 +108,7 @@ if __name__=="__main__":
     #print(eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris))
 
     max_iterations_list = [50, 150, 250, 350, 400, 500]
-    max_population_size = [50, 100, 150, 200, 250]
+    max_population_size = [50, 60, 70, 80, 90, 100]
 
     with open("results_iteratif.md", "w") as file:
         file.write("# Résultats de l'algorithme génétique\n\n")
