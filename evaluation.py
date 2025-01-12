@@ -15,7 +15,7 @@ def eval_non_lin(pi,df_ville,df_object,dict_ville_objet_pris,obj_pris,capacity):
     #print(211 in dict_ville_objet_pris, 190 in dict_ville_objet_pris)
     for i in range(1,len(pi)):
         distance=calcul_distance_de_ville(pi[i-1],df_ville)[pi[i]]
-        cout=cout+max(distance/(v_max-poids*w),0.1)
+        cout=cout+distance/(v_max-poids*w)
         list_objet_i_pris=dict_ville_objet_pris[pi[i]]
         #print(pi[i])
         #print(len(list_objet_i_pris))
@@ -25,7 +25,7 @@ def eval_non_lin(pi,df_ville,df_object,dict_ville_objet_pris,obj_pris,capacity):
 
     distance=calcul_distance_de_ville(pi[-1],df_ville)[1]
 
-    cout=cout+max(distance/(v_max-poids*w),0.1)
+    cout=cout+distance/(v_max-poids*w)
     print("BENEFICE : ",benefice)
     print("COUT : ",cout)
 
