@@ -111,13 +111,34 @@ def algo_genetique(df_ville, df_object, capacite, population_size, max_iteration
     
         return pi, obj_pris
 
+    def local_search(solution):
+        
+        pi, obj_pris = solution
+        best_distance = calcul_distance_totale(pi, df_ville)  # Calculate the initial total distance
+
+        for i in range(1, len(pi) - 1):  # Skip index 0 (starting city remains fixed)
+            # Swap two cities
+            pi[i], pi[i+1] = pi[i+1], pi[i]
+            new_distance = calcul_distance_totale(pi, df_ville)
+
+            # Check if the new distance is better
+            if new_distance < best_distance:
+                best_distance = new_distance
+            else:
+                # Swap back if no improvement
+                pi[i], pi[i+1] = pi[i+1], pi[i]
+
+        return pi, obj_pris
+
     # Générer la population initiale
-    population = [generate_solution() for _ in range(population_size)]
+    greedy_solution = algo_glouton(df_ville, df_object, capacite)
+    initial_pi, initial_obj_pris, _, _ = greedy_solution
+    population = [generate_solution() for _ in range(population_size-1)]+[(initial_pi, initial_obj_pris)]
     best_solution = None
     best_profit = -np.inf
 
     for iteration in range(max_iterations):
-        #print(iteration)
+        print(iteration)
         # Évaluer la population
         evaluated_population = [(evaluate_solution(pi, obj_pris), (pi, obj_pris)) for pi, obj_pris in population]
         evaluated_population.sort(reverse=True, key=lambda x: x[0][0])
@@ -143,6 +164,10 @@ def algo_genetique(df_ville, df_object, capacite, population_size, max_iteration
 
         # Combine parents and children
         combined_population = parents + children
+        for i in  range(len(combined_population)):
+            if i%10==0:
+                print("BURADA")
+            combined_population[i]=local_search(combined_population[i])
 
         # Evaluate the combined population
         evaluated_combined_population = [
@@ -186,8 +211,8 @@ if __name__=="__main__":
     #pi, best_obj_pris, best_profit, dict_ville_objet_pris = algo_genetique(df_ville, df_object, capacity)
     #print(eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris))
 
-    max_iterations_list = [50, 150, 250, 350, 400, 500]
-    max_population_size = [50, 60, 70, 80, 90, 100]
+    max_iterations_list = [10]
+    max_population_size = [50]
 
     with open("results_iteratif.md", "w") as file:
         file.write("# Résultats de l'algorithme génétique\n\n")
