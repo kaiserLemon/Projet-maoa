@@ -212,7 +212,7 @@ if __name__=="__main__":
     #print(eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris))
 
     max_iterations_list = [10]
-    max_population_size = [50]
+    max_population_size = [10]
 
     with open("results_iteratif.md", "w") as file:
         file.write("# Résultats de l'algorithme génétique\n\n")
