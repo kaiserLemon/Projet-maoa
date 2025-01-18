@@ -138,7 +138,7 @@ def algo_genetique(df_ville, df_object, capacite, population_size, max_iteration
     best_profit = -np.inf
 
     for iteration in range(max_iterations):
-        print(iteration)
+        #print(iteration)
         # Évaluer la population
         evaluated_population = [(evaluate_solution(pi, obj_pris), (pi, obj_pris)) for pi, obj_pris in population]
         evaluated_population.sort(reverse=True, key=lambda x: x[0][0])
@@ -165,8 +165,7 @@ def algo_genetique(df_ville, df_object, capacite, population_size, max_iteration
         # Combine parents and children
         combined_population = parents + children
         for i in  range(len(combined_population)):
-            if i%10==0:
-                print("BURADA")
+ 
             combined_population[i]=local_search(combined_population[i])
 
         # Evaluate the combined population
@@ -211,7 +210,7 @@ if __name__=="__main__":
     #pi, best_obj_pris, best_profit, dict_ville_objet_pris = algo_genetique(df_ville, df_object, capacity)
     #print(eval_lin(pi, df_ville, df_object, dict_ville_objet_pris, best_obj_pris))
 
-    max_iterations_list = [10]
+    max_iterations_list = [50]
     max_population_size = [10]
 
     with open("results_iteratif.md", "w") as file:

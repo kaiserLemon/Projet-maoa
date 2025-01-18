@@ -99,21 +99,38 @@ def prog_lin(df_ville,df_object,capacity):
     # Optimize the model
     model.optimize()
 
-    # Print results
+    # Extract solution
+    pi = []
+    obj_pris = {i: [] for i in range(n)}  # Initialize dictionary to store selected objects for each city
     if model.status == gp.GRB.OPTIMAL:
         print(f"Optimal combined objective value: {model.objVal}")
         print("Selected objects:")
+
+        # Extract selected objects
         for index_ville, vars_list in dict_obj_ville.items():
             for obj_var in vars_list:
                 if obj_var.x > 0.5:
+                    obj_pris[index_ville].append(obj_var.varName)
                     print(f"Object {obj_var.varName} selected")
-        print("Optimal routing:")
-        for i in range(n):
+
+        # Build the path starting from city 0
+        visited = set()
+        current_city = 0
+        while len(visited) < n:
+            visited.add(current_city)
+            pi.append(current_city)
             for j in range(n):
-                if y[i][j].x > 0.5:
-                    print(f"Route: City {i} -> City {j}")
+                if y[current_city][j].x > 0.5 and j not in visited:
+                    current_city = j
+                    break
+
+        print("Optimal path:", pi)
+
+    return pi, obj_pris
 
 
 if __name__=="__main__":
-    df_ville,df_object,capacity=parse_ttp_file("a280_n2790_uncorr_10.ttp")
-    prog_lin(df_ville,df_object,capacity)
+    df_ville,df_object,capacity=parse_ttp_file("a280_n279_bounded-strongly-corr_01.ttp")
+    pi,obj_pris=prog_lin(df_ville,df_object,capacity)
+    print("Path (pi):", pi)
+    print("Selected objects (obj_pris):", obj_pris)
